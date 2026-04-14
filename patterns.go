@@ -166,6 +166,122 @@ func UnionJack(c *Canvas) {
 	c.FillRect(cx-redCrossH/2, 0, cx-redCrossH/2+redCrossH, c.Height, UKRed)
 }
 
+func LeftTriangle(c *Canvas, color RGB, widthFrac float64) {
+	tw := float64(c.Width) * widthFrac
+	mid := float64(c.Height) / 2.0
+	for y := 0; y < c.Height; y++ {
+		fy := float64(y) + 0.5
+		ratio := 1.0 - math.Abs(fy-mid)/mid
+		maxX := int(tw * ratio)
+		for x := 0; x < maxX; x++ {
+			c.Set(x, y, color)
+		}
+	}
+}
+
+func FilledCircle(c *Canvas, cx, cy, radius float64, color RGB) {
+	r2 := radius * radius
+	for y := 0; y < c.Height; y++ {
+		dy := float64(y) + 0.5 - cy
+		for x := 0; x < c.Width; x++ {
+			dx := float64(x) + 0.5 - cx
+			if dx*dx+dy*dy <= r2 {
+				c.Set(x, y, color)
+			}
+		}
+	}
+}
+
+func Crescent(c *Canvas, cx, cy, outerR, innerR, offset float64, color RGB) {
+	for y := 0; y < c.Height; y++ {
+		dy := float64(y) + 0.5 - cy
+		for x := 0; x < c.Width; x++ {
+			dx := float64(x) + 0.5 - cx
+			dxI := float64(x) + 0.5 - (cx + offset)
+			if dx*dx+dy*dy <= outerR*outerR && dxI*dxI+dy*dy > innerR*innerR {
+				c.Set(x, y, color)
+			}
+		}
+	}
+}
+
+func FiveStar(c *Canvas, cx, cy, outerR float64, color RGB) {
+	innerR := outerR * 0.382
+	verts := make([][2]float64, 10)
+	for i := 0; i < 5; i++ {
+		oa := -math.Pi/2 + float64(i)*2*math.Pi/5
+		ia := oa + math.Pi/5
+		verts[i*2] = [2]float64{cx + outerR*math.Cos(oa), cy + outerR*math.Sin(oa)}
+		verts[i*2+1] = [2]float64{cx + innerR*math.Cos(ia), cy + innerR*math.Sin(ia)}
+	}
+	minY := int(math.Max(0, cy-outerR))
+	maxY := int(math.Min(float64(c.Height-1), cy+outerR))
+	minX := int(math.Max(0, cx-outerR))
+	maxX := int(math.Min(float64(c.Width-1), cx+outerR))
+	for y := minY; y <= maxY; y++ {
+		for x := minX; x <= maxX; x++ {
+			if pointInPoly(float64(x)+0.5, float64(y)+0.5, verts) {
+				c.Set(x, y, color)
+			}
+		}
+	}
+}
+
+func pointInPoly(px, py float64, verts [][2]float64) bool {
+	n := len(verts)
+	inside := false
+	j := n - 1
+	for i := 0; i < n; i++ {
+		yi, xi := verts[i][1], verts[i][0]
+		yj, xj := verts[j][1], verts[j][0]
+		if ((yi > py) != (yj > py)) && px < (xj-xi)*(py-yi)/(yj-yi)+xi {
+			inside = !inside
+		}
+		j = i
+	}
+	return inside
+}
+
+func Saltire(c *Canvas, color RGB, thickness float64) {
+	w := float64(c.Width)
+	h := float64(c.Height)
+	diag := math.Sqrt(w*w + h*h)
+	for y := 0; y < c.Height; y++ {
+		for x := 0; x < c.Width; x++ {
+			fx := float64(x) + 0.5
+			fy := float64(y) + 0.5
+			d1 := math.Abs(h*fx-w*fy) / diag
+			d2 := math.Abs(h*fx+w*fy-w*h) / diag
+			if d1 < thickness || d2 < thickness {
+				c.Set(x, y, color)
+			}
+		}
+	}
+}
+
+func Diamond(c *Canvas, color RGB, wFrac, hFrac float64) {
+	cx := float64(c.Width) / 2
+	cy := float64(c.Height) / 2
+	hw := float64(c.Width) * wFrac / 2
+	hh := float64(c.Height) * hFrac / 2
+	for y := 0; y < c.Height; y++ {
+		for x := 0; x < c.Width; x++ {
+			dx := math.Abs(float64(x)+0.5-cx) / hw
+			dy := math.Abs(float64(y)+0.5-cy) / hh
+			if dx+dy <= 1.0 {
+				c.Set(x, y, color)
+			}
+		}
+	}
+}
+
+func CenteredCross(c *Canvas, color RGB, thickX, thickY int) {
+	cx := c.Width / 2
+	cy := c.Height / 2
+	c.FillRect(0, cy-thickY/2, c.Width, cy+thickY/2, color)
+	c.FillRect(cx-thickX/2, 0, cx+thickX/2, c.Height, color)
+}
+
 func USAFlag(c *Canvas) {
 	// 13 stripes
 	for i := 0; i < 13; i++ {
